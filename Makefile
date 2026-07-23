@@ -21,8 +21,6 @@ list:
 test:
 	./lab.sh test
 
-verify:
-	./lab.sh verify
 
 validate:
 	./lab.sh validate

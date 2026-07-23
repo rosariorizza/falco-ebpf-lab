@@ -72,10 +72,6 @@ case "$command_name" in
     require_docker
     docker compose exec -T tester bash /tests/00_run_all.sh
     ;;
-  verify)
-    require_docker
-    exec ./scripts/verify.sh
-    ;;
   validate)
     require_docker
     exec ./scripts/validate.sh
