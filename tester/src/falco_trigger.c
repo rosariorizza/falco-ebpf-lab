@@ -169,9 +169,6 @@ int main(int argc, char **argv)
         puts("generic tool test");
         return 0;
     }
-    if (strcmp(argv[1], "load-valid-program") == 0) {
-        return trigger_bpf_prog_load();
-    }
 
     usage(argv[0]);
     return 2;

@@ -36,6 +36,8 @@ ls -1 /tests
 /tests/03_suspicious_bpf_object_pin_or_get.sh
 /tests/07_sensitive_proc_kernel_write.sh
 /tests/00_run_all.sh
+# should not trigger Falco
+/tests/09_allowed_bpf_obj_pin.sh
 ```
 
 The first terminal will display alerts containing markers such as:
@@ -63,18 +65,17 @@ The report marks each rule as `PASS` only when it finds the corresponding marker
 
 ## Included Tests
 
-| Script                                         | Generated event                               | Test safety                                                                    |
-| ---------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------ |
-| `01_unexpected_ebpf_program_load_or_attach.sh` | `BPF_PROG_LOAD`                               | Loads at most one minimal socket-filter program and closes it immediately.     |
-| `02_ebpf_program_load_from_container.sh`       | `BPF_PROG_ATTACH`                             | Uses intentionally invalid file descriptors.                                   |
-| `03_suspicious_bpf_object_pin_or_get.sh`       | `BPF_OBJ_GET`                                 | Requests a nonexistent object.                                                 |
-| `04_bpf_tool_executed_by_unusual_process.sh`   | `bpftool` execution                           | Uses a local stub that only prints a message.                                  |
-| `05_kernel_module_load_attempt.sh`             | `init_module`                                 | Passes an empty, invalid image; no module can be loaded.                       |
-| `06_capability_set_modification.sh`            | `capset`                                      | Reapplies the current capabilities exactly as they are, without changing them. |
-| `07_sensitive_proc_kernel_write.sh`            | write-open operation under `/proc/sys/kernel` | The path is overlaid with `tmpfs`, so it does not affect host sysctls.         |
-| `08_bpf_filesystem_access.sh`                  | read/write operation under `/sys/fs/bpf`      | The path is overlaid with `tmpfs`, so it does not use the host bpffs.          |
-| `09_load_valid_program.sh`                     | `BPF_PROG_LOAD`                               | Loads a program from a valid process          |
-
+| Script                                           | Generated event                                | Test safety                                                                    |
+| ------------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------ |
+| `01_unexpected_ebpf_program_load_or_attach.sh` | `BPF_PROG_LOAD`                              | Loads at most one minimal socket-filter program and closes it immediately.     |
+| `02_ebpf_program_load_from_container.sh`       | `BPF_PROG_ATTACH`                            | Uses intentionally invalid file descriptors.                                   |
+| `03_suspicious_bpf_object_pin_or_get.sh`       | `BPF_OBJ_GET`                                | Requests a nonexistent object.                                                 |
+| `04_bpf_tool_executed_by_unusual_process.sh`   | `bpftool` execution                          | Uses a local stub that only prints a message.                                  |
+| `05_kernel_module_load_attempt.sh`             | `init_module`                                | Passes an empty, invalid image; no module can be loaded.                       |
+| `06_capability_set_modification.sh`            | `capset`                                     | Reapplies the current capabilities exactly as they are, without changing them. |
+| `07_sensitive_proc_kernel_write.sh`            | write-open operation under`/proc/sys/kernel` | The path is overlaid with`tmpfs`, so it does not affect host sysctls.        |
+| `08_bpf_filesystem_access.sh`                  | read/write operation under`/sys/fs/bpf`      | The path is overlaid with`tmpfs`, so it does not use the host bpffs.         |
+| `09_allowed_bpf_obj_pin`                       | `BPF_OBJ_GET`                                | Requests a nonexistent object                                                  |
 
 ## Quick Commands
 
