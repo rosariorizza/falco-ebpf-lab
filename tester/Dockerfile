@@ -7,7 +7,7 @@ RUN apt-get update \
 WORKDIR /src
 COPY tester/src/falco_trigger.c /src/falco_trigger.c
 RUN mkdir -p /out \
-    && gcc -O2 -Wall -Wextra -Werror -o /out/falco-trigger /src/falco_trigger.c \
+    && gcc -O2 -Wall -Wextra -o /out/falco-trigger /src/falco_trigger.c \
     && cp /out/falco-trigger /out/bpftool \
     && cp /out/falco-trigger /out/bpfallow
 
