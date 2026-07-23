@@ -1,0 +1,38 @@
+services:
+  falco:
+    image: falcosecurity/falco:0.44.1
+    container_name: falco-ebpf-lab
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - /proc:/host/proc:ro
+      - /etc:/host/etc:ro
+      - ./falco/ebpf-abuse-rules.yaml:/etc/falco/rules.d/ebpf-abuse-rules.yaml:ro
+    command:
+      - /usr/bin/falco
+      - -r
+      - /etc/falco/rules.d/ebpf-abuse-rules.yaml
+      - -o
+      - engine.kind=modern_ebpf
+      - -o
+      - stdout_output.enabled=true
+      - -o
+      - syslog_output.enabled=false
+      - -o
+      - json_output=false
+      - -o
+      - buffered_outputs=false
+
+  tester:
+    build:
+      context: .
+      dockerfile: tester/Dockerfile
+    container_name: falco-ebpf-tester
+    privileged: true
+    depends_on:
+      - falco
+    tmpfs:
+      - /sys/fs/bpf:rw,nosuid,nodev,noexec,size=1m
+    volumes:
+      - ./tests:/tests:ro
+    command: ["sleep", "infinity"]
