@@ -73,6 +73,8 @@ The report marks each rule as `PASS` only when it finds the corresponding marker
 | `06_capability_set_modification.sh`            | `capset`                                      | Reapplies the current capabilities exactly as they are, without changing them. |
 | `07_sensitive_proc_kernel_write.sh`            | write-open operation under `/proc/sys/kernel` | The path is overlaid with `tmpfs`, so it does not affect host sysctls.         |
 | `08_bpf_filesystem_access.sh`                  | read/write operation under `/sys/fs/bpf`      | The path is overlaid with `tmpfs`, so it does not use the host bpffs.          |
+| `09_load_valid_program.sh`                     | `BPF_PROG_LOAD`                               | Loads a program from a valid process          |
+
 
 ## Quick Commands
 

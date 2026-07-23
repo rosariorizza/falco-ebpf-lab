@@ -9,8 +9,6 @@
 #include <string.h>
 #include <sys/syscall.h>
 #include <unistd.h>
-#include <sys/prctl.h>
-#include <stdbool.h>
 
 
 static void print_result(const char *action, long result)
@@ -29,7 +27,7 @@ static long do_bpf(enum bpf_cmd command, union bpf_attr *attr)
     return syscall(SYS_bpf, command, attr, sizeof(*attr));
 }
 
-static int trigger_bpf_prog_load(bool valid)
+static int trigger_bpf_prog_load()
 {
     struct bpf_insn insns[] = {
         {
@@ -59,12 +57,6 @@ static int trigger_bpf_prog_load(bool valid)
     attr.log_size = sizeof(log_buffer);
     attr.log_level = 1;
 
-    if (valid) {
-        if (prctl(PR_SET_NAME, "cilium-agent", 0, 0, 0) == -1) {
-            perror("prctl(PR_SET_NAME)");
-            return -1;
-        }
-    }
 
     long result = do_bpf(BPF_PROG_LOAD, &attr);
     print_result("BPF_PROG_LOAD", result);
@@ -159,7 +151,7 @@ int main(int argc, char **argv)
     }
 
     if (strcmp(argv[1], "bpf-prog-load") == 0) {
-        return trigger_bpf_prog_load(false);
+        return trigger_bpf_prog_load();
     }
     if (strcmp(argv[1], "bpf-prog-attach") == 0) {
         return trigger_bpf_prog_attach();
@@ -178,7 +170,7 @@ int main(int argc, char **argv)
         return 0;
     }
     if (strcmp(argv[1], "load-valid-program") == 0) {
-        return trigger_bpf_prog_load(true);
+        return trigger_bpf_prog_load();
     }
 
     usage(argv[0]);
