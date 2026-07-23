@@ -10,6 +10,8 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <sys/prctl.h>
+#include <stdbool.h>
+
 
 static void print_result(const char *action, long result)
 {
