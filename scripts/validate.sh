@@ -13,4 +13,4 @@ fi
 
 docker compose run --rm --no-deps falco \
   /usr/bin/falco --dry-run \
-  -r /etc/falco/rules.d/ebpf-abuse-rules.yaml
+  -r /etc/falco/rules.d/ebpf-safety-rules.yaml

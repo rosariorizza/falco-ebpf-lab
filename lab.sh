@@ -15,7 +15,7 @@ Commands:
   logs               Follow Falco alerts.
   shell              Open a Bash shell in the tester container.
   list               List available test scripts.
-  run <script-name>  Run one test, for example 01_unexpected_ebpf_program_load_or_attach.sh.
+  run <script-name>  Run one test, for example 01_alert_unexpected_ebpf_program_load_or_attach.sh.
   test               Run all tests.
   verify             Run all tests and create evidence files.
   validate           Validate the Falco rules with --dry-run.

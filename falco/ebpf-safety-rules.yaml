@@ -1,5 +1,8 @@
 - list: known_bpf_loader_processes
-  items: [falco, bpfallow, bpftool, bpftrace, tracee, cilium-agent, systemd, systemd-udevd]
+  items: [falco, bpfallow, bpfcontainer, bpftool, bpftrace, tracee, cilium-agent, systemd, systemd-udevd]
+
+- list: allowed_lab_processes
+  items: [bpfallow]
 
 - list: suspicious_bpf_tools
   items: [bpftool, bpftrace, tc, perf, clang, llc, ip]
@@ -48,7 +51,8 @@
   desc: Detect an eBPF program load or attach originating from a container.
   condition: >
     bpf_program_load_or_attach and
-    container.id != host
+    container.id != host and
+    not proc.name in (allowed_lab_processes)
   output: >
     [RULE=eBPF Program Load From Container] eBPF program activity from container
     cmd=%evt.arg.cmd proc=%proc.name user=%user.name command=%proc.cmdline
@@ -84,7 +88,9 @@
 
 - rule: Kernel Module Load Attempt
   desc: Detect kernel module load attempts associated with kernel-level persistence or evasion.
-  condition: evt.type in (init_module, finit_module)
+  condition: >
+    evt.type in (init_module, finit_module) and
+    not proc.name in (allowed_lab_processes)
   output: >
     [RULE=Kernel Module Load Attempt] Kernel module load attempt
     result=%evt.res proc=%proc.name user=%user.name command=%proc.cmdline
@@ -94,7 +100,9 @@
 
 - rule: Capability Set Modification
   desc: Detect process capability-set changes.
-  condition: evt.type=capset
+  condition: >
+    evt.type=capset and
+    not proc.name in (allowed_lab_processes)
   output: >
     [RULE=Capability Set Modification] Capability set modified
     result=%evt.res proc=%proc.name user=%user.name command=%proc.cmdline
@@ -107,7 +115,8 @@
   desc: Detect writes beneath sensitive proc/sys kernel control paths.
   condition: >
     file_opened_for_write_local and
-    fd.name startswith /proc/sys/kernel
+    fd.name startswith /proc/sys/kernel and
+    not proc.name in (allowed_lab_processes)
   output: >
     [RULE=Sensitive Proc Kernel Write] Write to sensitive kernel sysctl path
     file=%fd.name proc=%proc.name user=%user.name command=%proc.cmdline
@@ -119,7 +128,8 @@
   desc: Detect read or write access to bpffs paths commonly used for pinned eBPF objects.
   condition: >
     (file_opened_for_read_local or file_opened_for_write_local) and
-    (fd.name startswith /sys/fs/bpf or fd.name startswith /run/cilium/bpffs)
+    (fd.name startswith /sys/fs/bpf or fd.name startswith /run/cilium/bpffs) and
+    not proc.name in (allowed_lab_processes)
   output: >
     [RULE=BPF Filesystem Access] BPF filesystem access
     file=%fd.name proc=%proc.name user=%user.name command=%proc.cmdline

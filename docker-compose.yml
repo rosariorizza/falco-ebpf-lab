@@ -7,11 +7,11 @@ services:
       - /var/run/docker.sock:/host/var/run/docker.sock
       - /proc:/host/proc:ro
       - /etc:/host/etc:ro
-      - ./falco/ebpf-abuse-rules.yaml:/etc/falco/rules.d/ebpf-abuse-rules.yaml:ro
+      - ./falco/ebpf-safety-rules.yaml:/etc/falco/rules.d/ebpf-safety-rules.yaml:ro
     command:
       - /usr/bin/falco
       - -r
-      - /etc/falco/rules.d/ebpf-abuse-rules.yaml
+      - /etc/falco/rules.d/ebpf-safety-rules.yaml
       - -o
       - engine.kind=modern_ebpf
       - -o

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/syscall.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 
@@ -128,10 +129,107 @@ static int trigger_capset(void)
     return 0;
 }
 
+static int trigger_bpftool_execution(void)
+{
+    pid_t child = fork();
+    if (child < 0) {
+        print_result("BPFTOOL_EXECUTION", -1);
+        return 0;
+    }
+
+    if (child == 0) {
+        execl("/usr/local/bin/bpftool", "bpftool", "version", (char *)NULL);
+        fprintf(stderr, "action=BPFTOOL_EXECUTION status=expected-failure errno=%d (%s)\n",
+                errno, strerror(errno));
+        _exit(127);
+    }
+
+    int status = 0;
+    errno = 0;
+    long result = waitpid(child, &status, 0);
+    if (result < 0) {
+        print_result("BPFTOOL_EXECUTION", result);
+    } else if (WIFEXITED(status)) {
+        printf("action=BPFTOOL_EXECUTION result=%d status=%s\n",
+               WEXITSTATUS(status), WEXITSTATUS(status) == 0 ? "success" : "expected-failure");
+    } else {
+        puts("action=BPFTOOL_EXECUTION status=expected-failure reason=child-terminated");
+    }
+    return 0;
+}
+
+static int trigger_sensitive_proc_kernel_write(void)
+{
+    static const char path[] = "/proc/sys/kernel/hostname";
+    char hostname[256];
+    if (gethostname(hostname, sizeof(hostname) - 2) < 0) {
+        print_result("SENSITIVE_PROC_KERNEL_WRITE", -1);
+        return 0;
+    }
+    hostname[sizeof(hostname) - 2] = '\0';
+    size_t length = strlen(hostname);
+    hostname[length++] = '\n';
+
+    errno = 0;
+    int fd = open(path, O_WRONLY);
+    if (fd < 0) {
+        print_result("SENSITIVE_PROC_KERNEL_WRITE", fd);
+        return 0;
+    }
+
+    errno = 0;
+    long result = write(fd, hostname, length);
+    int saved_errno = errno;
+    close(fd);
+    errno = saved_errno;
+    print_result("SENSITIVE_PROC_KERNEL_WRITE", result);
+    return 0;
+}
+
+static int trigger_bpf_filesystem_access(void)
+{
+    static const char path[] = "/sys/fs/bpf/falco_lab_probe";
+    static const char contents[] = "falco-lab\n";
+    char buffer[sizeof(contents)];
+
+    errno = 0;
+    int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    if (fd < 0) {
+        print_result("BPF_FILESYSTEM_ACCESS", fd);
+        return 0;
+    }
+
+    long result = write(fd, contents, sizeof(contents) - 1);
+    int saved_errno = errno;
+    close(fd);
+    if (result < 0) {
+        errno = saved_errno;
+        print_result("BPF_FILESYSTEM_ACCESS", result);
+        unlink(path);
+        return 0;
+    }
+
+    errno = 0;
+    fd = open(path, O_RDONLY);
+    if (fd < 0) {
+        print_result("BPF_FILESYSTEM_ACCESS", fd);
+        unlink(path);
+        return 0;
+    }
+
+    result = read(fd, buffer, sizeof(buffer));
+    saved_errno = errno;
+    close(fd);
+    unlink(path);
+    errno = saved_errno;
+    print_result("BPF_FILESYSTEM_ACCESS", result);
+    return 0;
+}
+
 static void usage(const char *program)
 {
     fprintf(stderr,
-            "Usage: %s <bpf-prog-load|bpf-prog-attach|bpf-obj-get|init-module|capset|tool|load-valid-program>\n",
+            "Usage: %s <bpf-prog-load|bpf-prog-attach|bpf-obj-get|init-module|capset|run-bpftool|proc-kernel-write|bpf-filesystem-access>\n",
             program);
 }
 
@@ -165,9 +263,14 @@ int main(int argc, char **argv)
     if (strcmp(argv[1], "capset") == 0) {
         return trigger_capset();
     }
-    if (strcmp(argv[1], "tool") == 0) {
-        puts("generic tool test");
-        return 0;
+    if (strcmp(argv[1], "run-bpftool") == 0) {
+        return trigger_bpftool_execution();
+    }
+    if (strcmp(argv[1], "proc-kernel-write") == 0) {
+        return trigger_sensitive_proc_kernel_write();
+    }
+    if (strcmp(argv[1], "bpf-filesystem-access") == 0) {
+        return trigger_bpf_filesystem_access();
     }
 
     usage(argv[0]);
