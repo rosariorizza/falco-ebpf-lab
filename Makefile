@@ -1,13 +1,10 @@
-.PHONY: doctor up up-tracefs logs shell list test verify validate down
+.PHONY: doctor up logs shell list test verify validate down
 
 doctor:
 	./lab.sh doctor
 
 up:
 	./lab.sh up
-
-up-tracefs:
-	./lab.sh up-tracefs
 
 logs:
 	./lab.sh logs

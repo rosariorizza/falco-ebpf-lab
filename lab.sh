@@ -11,7 +11,6 @@ Usage: ./lab.sh <command> [argument]
 Commands:
   doctor             Check host prerequisites.
   up                 Build and start Falco plus the tester.
-  up-tracefs         Start with the optional host tracefs mount.
   logs               Follow Falco alerts.
   shell              Open a Bash shell in the tester container.
   list               List available test scripts.
@@ -42,10 +41,6 @@ case "$command_name" in
   up)
     require_docker
     docker compose up -d --build
-    ;;
-  up-tracefs)
-    require_docker
-    docker compose -f docker-compose.yml -f docker-compose.tracefs.yml up -d --build
     ;;
   logs)
     require_docker

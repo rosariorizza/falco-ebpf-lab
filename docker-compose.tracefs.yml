@@ -1,4 +1,0 @@
-services:
-  falco:
-    volumes:
-      - /sys/kernel/tracing:/sys/kernel/tracing:ro

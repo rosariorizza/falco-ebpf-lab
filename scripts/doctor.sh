@@ -29,14 +29,6 @@ else
   printf 'WARN  Kernel BTF not found at /sys/kernel/btf/vmlinux\n'
 fi
 
-if [[ -d /sys/kernel/tracing ]]; then
-  printf 'INFO  tracefs path: /sys/kernel/tracing\n'
-elif [[ -d /sys/kernel/debug/tracing ]]; then
-  printf 'INFO  tracefs path: /sys/kernel/debug/tracing\n'
-else
-  printf 'WARN  tracefs path not found; Falco can still run without the optional mount\n'
-fi
-
 if [[ -r /proc/sys/kernel/unprivileged_bpf_disabled ]]; then
   printf 'INFO  kernel.unprivileged_bpf_disabled=%s\n' "$(cat /proc/sys/kernel/unprivileged_bpf_disabled)"
 fi
