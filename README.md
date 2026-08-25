@@ -1,6 +1,7 @@
 # Falco anomalous eBPF Lab
 
-Docker Compose lab for running Falco with custom rules focused on anomalous use of eBPF, capabilities, kernel modules, and sensitive paths. A second container includes tests named after the actions they generate.
+Docker Compose lab for running Falco with custom rules focused on detecting anomalous/malicious use of eBPF, capabilities, kernel modules, and sensitive paths. A second container includes tests, named after the actions they generate. 
+A whitelist of processes allowed to perform sensitive eBPF-related operations (e.g., loading and attacking eBPF programs) is assumed.
 
 ## Repository Structure
 
