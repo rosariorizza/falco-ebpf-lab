@@ -19,6 +19,16 @@ Docker Compose lab for running Falco with custom rules focused on anomalous use 
 
 The project uses the Falco `0.44.1` image.
 
+## Configuring process allowlists
+
+Falco allowlists are rule-specific: a process is excluded only by rules whose `condition` references it. To exclude a process from one rule, add a `proc.name` exclusion to that rule's condition; use `proc.pname` when the exception concerns the parent process.
+
+`known_bpf_loader_processes`, defined at the top of [`falco/ebpf-safety-rules.yaml`](falco/ebpf-safety-rules.yaml), prevents the general eBPF rules from reporting trusted eBPF loaders. Add a process to its `items` only when its eBPF activity should be trusted by every rule that references this list.
+
+`pass_case_processes` is an internal lab list used by every rule to prevent the processes used by the [Pass Cases](#pass-cases) from generating alerts. 
+
+After changing the rules or a list, run `./lab.sh validate` and restart Falco with `./lab.sh down` followed by `./lab.sh up`.
+
 ## Preliminary Checks
 
 ```bash

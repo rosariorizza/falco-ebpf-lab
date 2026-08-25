@@ -1,7 +1,7 @@
 - list: known_bpf_loader_processes
-  items: [falco, bpfallow, bpfcontainer, bpftool, bpftrace, tracee, cilium-agent, systemd, systemd-udevd]
+  items: [falco, bpfcontainer, bpftool, bpftrace, tracee, cilium-agent, systemd, systemd-udevd]
 
-- list: allowed_lab_processes
+- list: pass_case_processes
   items: [bpfallow]
 
 - list: suspicious_bpf_tools
@@ -38,7 +38,8 @@
   desc: Detect an unexpected process loading or attaching an eBPF program.
   condition: >
     bpf_program_load_or_attach and
-    not proc.name in (known_bpf_loader_processes)
+    not proc.name in (known_bpf_loader_processes) and
+    not proc.name in (pass_case_processes)
   output: >
     [RULE=Unexpected eBPF Program Load Or Attach] Unexpected eBPF program load/attach
     cmd=%evt.arg.cmd proc=%proc.name exe=%proc.exepath user=%user.name
@@ -52,7 +53,7 @@
   condition: >
     bpf_program_load_or_attach and
     container.id != host and
-    not proc.name in (allowed_lab_processes)
+    not proc.name in (pass_case_processes)
   output: >
     [RULE=eBPF Program Load From Container] eBPF program activity from container
     cmd=%evt.arg.cmd proc=%proc.name user=%user.name command=%proc.cmdline
@@ -65,7 +66,8 @@
   condition: >
     bpf_syscall and
     evt.arg.cmd in (BPF_OBJ_PIN, BPF_OBJ_GET, BPF_PROG_GET_FD_BY_ID, BPF_MAP_GET_FD_BY_ID) and
-    not proc.name in (known_bpf_loader_processes)
+    not proc.name in (known_bpf_loader_processes) and
+    not proc.name in (pass_case_processes)
   output: >
     [RULE=Suspicious BPF Object Pin Or Get] Suspicious eBPF object access
     cmd=%evt.arg.cmd proc=%proc.name user=%user.name command=%proc.cmdline
@@ -78,7 +80,8 @@
   condition: >
     spawned_process_local and
     proc.name in (suspicious_bpf_tools) and
-    not proc.pname in (known_bpf_loader_processes)
+    not proc.pname in (known_bpf_loader_processes) and
+    not proc.pname in (pass_case_processes)
   output: >
     [RULE=BPF Tool Executed By Unusual Process] eBPF-related tool executed
     proc=%proc.name parent=%proc.pname user=%user.name command=%proc.cmdline
@@ -90,7 +93,7 @@
   desc: Detect kernel module load attempts associated with kernel-level persistence or evasion.
   condition: >
     evt.type in (init_module, finit_module) and
-    not proc.name in (allowed_lab_processes)
+    not proc.name in (pass_case_processes)
   output: >
     [RULE=Kernel Module Load Attempt] Kernel module load attempt
     result=%evt.res proc=%proc.name user=%user.name command=%proc.cmdline
@@ -102,7 +105,7 @@
   desc: Detect process capability-set changes.
   condition: >
     evt.type=capset and
-    not proc.name in (allowed_lab_processes)
+    not proc.name in (pass_case_processes)
   output: >
     [RULE=Capability Set Modification] Capability set modified
     result=%evt.res proc=%proc.name user=%user.name command=%proc.cmdline
@@ -116,7 +119,7 @@
   condition: >
     file_opened_for_write_local and
     fd.name startswith /proc/sys/kernel and
-    not proc.name in (allowed_lab_processes)
+    not proc.name in (pass_case_processes)
   output: >
     [RULE=Sensitive Proc Kernel Write] Write to sensitive kernel sysctl path
     file=%fd.name proc=%proc.name user=%user.name command=%proc.cmdline
@@ -129,7 +132,7 @@
   condition: >
     (file_opened_for_read_local or file_opened_for_write_local) and
     (fd.name startswith /sys/fs/bpf or fd.name startswith /run/cilium/bpffs) and
-    not proc.name in (allowed_lab_processes)
+    not proc.name in (pass_case_processes)
   output: >
     [RULE=BPF Filesystem Access] BPF filesystem access
     file=%fd.name proc=%proc.name user=%user.name command=%proc.cmdline
