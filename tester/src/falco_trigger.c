@@ -188,7 +188,7 @@ static int trigger_sensitive_proc_kernel_write(void)
 
 static int trigger_bpf_filesystem_access(void)
 {
-    static const char path[] = "/sys/fs/bpf/falco_lab_probe";
+    static const char path[] = "/run/cilium/bpffs/falco_lab_probe";
     static const char contents[] = "falco-lab\n";
     char buffer[sizeof(contents)];
 

@@ -17,7 +17,7 @@ Commands:
   run <script-name>  Run one test, for example 01_alert_unexpected_ebpf_program_load_or_attach.sh.
   test               Run all tests.
   verify             Run all tests and create evidence files.
-  validate           Validate the Falco rules with --dry-run.
+  validate           Validate the seccomp profile and Falco rules.
   down               Stop and remove the lab containers.
 USAGE
 }
@@ -40,6 +40,7 @@ case "$command_name" in
     ;;
   up)
     require_docker
+    ./scripts/render-seccomp-profile.sh --check
     docker compose up -d --build
     ;;
   logs)
@@ -48,11 +49,12 @@ case "$command_name" in
     ;;
   shell)
     require_docker
-    docker compose exec tester bash
+    docker compose exec tester setpriv --no-new-privs bash
     ;;
   list)
     require_docker
-    docker compose exec -T tester bash -lc 'find /tests -maxdepth 1 -type f -name "*.sh" -printf "%f\n" | sort'
+    docker compose exec -T tester setpriv --no-new-privs \
+      bash -lc 'find /tests -maxdepth 1 -type f -name "*.sh" -printf "%f\n" | sort'
     ;;
   run)
     require_docker
@@ -61,11 +63,11 @@ case "$command_name" in
       printf 'Pass a test filename from ./lab.sh list.\n' >&2
       exit 2
     fi
-    docker compose exec -T tester bash "/tests/$test_name"
+    docker compose exec -T tester setpriv --no-new-privs bash "/tests/$test_name"
     ;;
   test)
     require_docker
-    docker compose exec -T tester bash /tests/00_run_all.sh
+    docker compose exec -T tester setpriv --no-new-privs bash /tests/00_run_all.sh
     ;;
   validate)
     require_docker

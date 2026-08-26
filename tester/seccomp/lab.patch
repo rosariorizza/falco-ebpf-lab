@@ -1,0 +1,58 @@
+--- a/tester/seccomp/default-moby.json
++++ b/tester/seccomp-profile.json
+@@ -427,6 +427,55 @@
+     },
+     {
+       "names": [
++        "bpf"
++      ],
++      "action": "SCMP_ACT_ALLOW",
++      "args": [
++        {
++          "index": 0,
++          "value": 5,
++          "op": "SCMP_CMP_EQ"
++        }
++      ],
++      "comment": "Allow the lab BPF_PROG_LOAD attempt without granting CAP_BPF."
++    },
++    {
++      "names": [
++        "bpf"
++      ],
++      "action": "SCMP_ACT_ALLOW",
++      "args": [
++        {
++          "index": 0,
++          "value": 7,
++          "op": "SCMP_CMP_EQ"
++        }
++      ],
++      "comment": "Allow the lab BPF_OBJ_GET attempt without granting CAP_BPF."
++    },
++    {
++      "names": [
++        "bpf"
++      ],
++      "action": "SCMP_ACT_ALLOW",
++      "args": [
++        {
++          "index": 0,
++          "value": 8,
++          "op": "SCMP_CMP_EQ"
++        }
++      ],
++      "comment": "Allow the lab BPF_PROG_ATTACH attempt without granting CAP_BPF."
++    },
++    {
++      "names": [
++        "init_module"
++      ],
++      "action": "SCMP_ACT_ALLOW",
++      "comment": "Allow the lab init_module attempt without granting CAP_SYS_MODULE."
++    },
++    {
++      "names": [
+         "process_vm_readv",
+         "process_vm_writev",
+         "ptrace"

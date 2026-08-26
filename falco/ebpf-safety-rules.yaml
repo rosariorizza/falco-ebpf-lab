@@ -1,11 +1,29 @@
-- list: known_bpf_loader_processes
-  items: [falco, bpfcontainer, bpftool, bpftrace, tracee, cilium-agent, systemd, systemd-udevd]
+- list: suspicious_bpf_tool_exepaths
+  items:
+    - /usr/local/bin/bpftool
+    - /usr/bin/bpftool
+    - /usr/sbin/bpftool
+    - /usr/bin/bpftrace
+    - /usr/local/bin/bpftrace
+    - /usr/bin/tc
+    - /usr/sbin/tc
+    - /usr/bin/perf
+    - /usr/bin/clang
+    - /usr/bin/llc
+    - /usr/bin/ip
+    - /usr/sbin/ip
 
-- list: pass_case_processes
-  items: [bpfallow]
+- macro: trusted_lab_process
+  condition: >
+    proc.exepath=/opt/falco-lab/trusted/bpfallow and
+    user.uid=10001 and
+    container.image.repository=falco-ebpf-lab-tester
 
-- list: suspicious_bpf_tools
-  items: [bpftool, bpftrace, tc, perf, clang, llc, ip]
+- macro: trusted_lab_parent
+  condition: >
+    proc.pexepath=/opt/falco-lab/trusted/bpfallow and
+    user.uid=10001 and
+    container.image.repository=falco-ebpf-lab-tester
 
 - macro: bpf_syscall
   condition: evt.type=bpf
@@ -34,17 +52,23 @@
     fd.typechar='f' and
     fd.num>=0
 
+- macro: file_opened_for_write_failed_local
+  condition: >
+    evt.type in (open, openat, openat2) and
+    evt.is_open_write=true and
+    fd.typechar='f' and
+    fd.num=-1 and
+    evt.res startswith E
+
 - rule: Unexpected eBPF Program Load Or Attach
   desc: Detect an unexpected process loading or attaching an eBPF program.
-  condition: >
-    bpf_program_load_or_attach and
-    not proc.name in (known_bpf_loader_processes) and
-    not proc.name in (pass_case_processes)
+  condition: bpf_program_load_or_attach and not trusted_lab_process
   output: >
     [RULE=Unexpected eBPF Program Load Or Attach] Unexpected eBPF program load/attach
-    cmd=%evt.arg.cmd proc=%proc.name exe=%proc.exepath user=%user.name
+    cmd=%evt.arg.cmd result=%evt.res proc=%proc.name exe=%proc.exepath
+    user=%user.name uid=%user.uid loginuid=%user.loginuid
     pid=%proc.pid ppid=%proc.ppid command=%proc.cmdline container=%container.id
-    image=%container.image.repository
+    container_name=%container.name image=%container.image.repository
   priority: WARNING
   tags: [host, container, ebpf, privilege_escalation, mitre_privilege_escalation]
 
@@ -53,11 +77,12 @@
   condition: >
     bpf_program_load_or_attach and
     container.id != host and
-    not proc.name in (pass_case_processes)
+    not trusted_lab_process
   output: >
     [RULE=eBPF Program Load From Container] eBPF program activity from container
-    cmd=%evt.arg.cmd proc=%proc.name user=%user.name command=%proc.cmdline
-    container=%container.id image=%container.image.repository
+    cmd=%evt.arg.cmd result=%evt.res proc=%proc.name exe=%proc.exepath
+    user=%user.name uid=%user.uid loginuid=%user.loginuid command=%proc.cmdline
+    container=%container.id container_name=%container.name image=%container.image.repository
   priority: CRITICAL
   tags: [container, ebpf, privilege_escalation]
 
@@ -66,12 +91,12 @@
   condition: >
     bpf_syscall and
     evt.arg.cmd in (BPF_OBJ_PIN, BPF_OBJ_GET, BPF_PROG_GET_FD_BY_ID, BPF_MAP_GET_FD_BY_ID) and
-    not proc.name in (known_bpf_loader_processes) and
-    not proc.name in (pass_case_processes)
+    not trusted_lab_process
   output: >
     [RULE=Suspicious BPF Object Pin Or Get] Suspicious eBPF object access
-    cmd=%evt.arg.cmd proc=%proc.name user=%user.name command=%proc.cmdline
-    container=%container.id image=%container.image.repository
+    cmd=%evt.arg.cmd result=%evt.res proc=%proc.name exe=%proc.exepath
+    user=%user.name uid=%user.uid loginuid=%user.loginuid command=%proc.cmdline
+    container=%container.id container_name=%container.name image=%container.image.repository
   priority: WARNING
   tags: [ebpf, persistence, defense_evasion]
 
@@ -79,51 +104,51 @@
   desc: Detect execution of common eBPF-related tooling by an unexpected parent process.
   condition: >
     spawned_process_local and
-    proc.name in (suspicious_bpf_tools) and
-    not proc.pname in (known_bpf_loader_processes) and
-    not proc.pname in (pass_case_processes)
+    proc.exepath in (suspicious_bpf_tool_exepaths) and
+    not trusted_lab_parent
   output: >
     [RULE=BPF Tool Executed By Unusual Process] eBPF-related tool executed
-    proc=%proc.name parent=%proc.pname user=%user.name command=%proc.cmdline
-    container=%container.id image=%container.image.repository
+    proc=%proc.name exe=%proc.exepath parent=%proc.pname parent_exe=%proc.pexepath
+    user=%user.name uid=%user.uid loginuid=%user.loginuid command=%proc.cmdline
+    container=%container.id container_name=%container.name image=%container.image.repository
   priority: NOTICE
   tags: [ebpf, discovery, execution]
 
 - rule: Kernel Module Load Attempt
   desc: Detect kernel module load attempts associated with kernel-level persistence or evasion.
-  condition: >
-    evt.type in (init_module, finit_module) and
-    not proc.name in (pass_case_processes)
+  condition: evt.type in (init_module, finit_module) and not trusted_lab_process
   output: >
     [RULE=Kernel Module Load Attempt] Kernel module load attempt
-    result=%evt.res proc=%proc.name user=%user.name command=%proc.cmdline
-    container=%container.id image=%container.image.repository
+    result=%evt.res proc=%proc.name exe=%proc.exepath user=%user.name
+    uid=%user.uid loginuid=%user.loginuid command=%proc.cmdline
+    container=%container.id container_name=%container.name image=%container.image.repository
   priority: CRITICAL
   tags: [kernel, persistence, privilege_escalation]
 
 - rule: Capability Set Modification
   desc: Detect process capability-set changes.
-  condition: >
-    evt.type=capset and
-    not proc.name in (pass_case_processes)
+  condition: evt.type=capset and not trusted_lab_process
   output: >
     [RULE=Capability Set Modification] Capability set modified
-    result=%evt.res proc=%proc.name user=%user.name command=%proc.cmdline
+    result=%evt.res proc=%proc.name exe=%proc.exepath user=%user.name
+    uid=%user.uid loginuid=%user.loginuid command=%proc.cmdline
     cap_inheritable=%evt.arg.cap_inheritable cap_permitted=%evt.arg.cap_permitted
-    cap_effective=%evt.arg.cap_effective container=%container.id image=%container.image.repository
+    cap_effective=%evt.arg.cap_effective container=%container.id
+    container_name=%container.name image=%container.image.repository
   priority: WARNING
   tags: [capabilities, privilege_escalation]
 
 - rule: Sensitive Proc Kernel Write
   desc: Detect writes beneath sensitive proc/sys kernel control paths.
   condition: >
-    file_opened_for_write_local and
+    (file_opened_for_write_local or file_opened_for_write_failed_local) and
     fd.name startswith /proc/sys/kernel and
-    not proc.name in (pass_case_processes)
+    not trusted_lab_process
   output: >
     [RULE=Sensitive Proc Kernel Write] Write to sensitive kernel sysctl path
-    file=%fd.name proc=%proc.name user=%user.name command=%proc.cmdline
-    container=%container.id image=%container.image.repository
+    result=%evt.res file=%fd.name proc=%proc.name exe=%proc.exepath
+    user=%user.name uid=%user.uid loginuid=%user.loginuid command=%proc.cmdline
+    container=%container.id container_name=%container.name image=%container.image.repository
   priority: WARNING
   tags: [kernel, defense_evasion, privilege_escalation]
 
@@ -132,10 +157,11 @@
   condition: >
     (file_opened_for_read_local or file_opened_for_write_local) and
     (fd.name startswith /sys/fs/bpf or fd.name startswith /run/cilium/bpffs) and
-    not proc.name in (pass_case_processes)
+    not trusted_lab_process
   output: >
     [RULE=BPF Filesystem Access] BPF filesystem access
-    file=%fd.name proc=%proc.name user=%user.name command=%proc.cmdline
-    container=%container.id image=%container.image.repository
+    result=%evt.res file=%fd.name proc=%proc.name exe=%proc.exepath
+    user=%user.name uid=%user.uid loginuid=%user.loginuid command=%proc.cmdline
+    container=%container.id container_name=%container.name image=%container.image.repository
   priority: NOTICE
   tags: [ebpf, persistence]

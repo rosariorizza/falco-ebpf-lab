@@ -15,6 +15,7 @@ check() {
 
 check 'Linux host' test "$(uname -s)" = Linux
 check 'Docker CLI' command -v docker
+check 'GNU patch' command -v patch
 if command -v docker >/dev/null 2>&1; then
   check 'Docker daemon reachable' docker info
   check 'Docker Compose v2' docker compose version

@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'Triggering the same BPF_PROG_LOAD syscall from the allowlisted bpfallow process.\n'
-/usr/local/bin/bpfallow bpf-prog-load
+/opt/falco-lab/trusted/bpfallow bpf-prog-load

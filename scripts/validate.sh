@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+./scripts/render-seccomp-profile.sh --check
+
 if ! id -nG | tr ' ' '\n' | grep -qx docker; then
   echo "ERROR: Your user is not in the docker group, so this lab cannot access Docker."
   echo "Run: sudo usermod -aG docker \$USER"

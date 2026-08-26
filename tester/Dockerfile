@@ -15,15 +15,26 @@ RUN mkdir -p /out \
 FROM debian:bookworm-slim
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends bash coreutils procps \
+    && apt-get install -y --no-install-recommends bash coreutils passwd procps \
     && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd --gid 10001 falcolab \
+    && useradd --uid 10001 --gid 10001 --create-home --shell /bin/bash falcolab
 
 COPY --from=build /out/falco-trigger /usr/local/bin/falco-trigger
 COPY --from=build /out/bpftool /usr/local/bin/bpftool
-COPY --from=build /out/bpfallow /usr/local/bin/bpfallow
 COPY --from=build /out/bpfcontainer /usr/local/bin/bpfcontainer
+COPY --from=build /out/bpfallow /opt/falco-lab/trusted/bpfallow
 COPY tests /tests
-RUN chmod +x /usr/local/bin/falco-trigger /usr/local/bin/bpftool /usr/local/bin/bpfallow /usr/local/bin/bpfcontainer /tests/*.sh
+RUN chown root:root /usr/local/bin/falco-trigger /usr/local/bin/bpftool /usr/local/bin/bpfcontainer \
+    && chmod 0555 /usr/local/bin/falco-trigger /usr/local/bin/bpftool /usr/local/bin/bpfcontainer \
+    && chown root:falcolab /opt/falco-lab/trusted /opt/falco-lab/trusted/bpfallow \
+    && chmod 0750 /opt/falco-lab/trusted \
+    && chmod 0550 /opt/falco-lab/trusted/bpfallow \
+    && chown -R root:root /tests \
+    && chmod 0555 /tests /tests/*.sh \
+    && find / -xdev -type f -perm /6000 -exec chmod a-s {} +
 
 WORKDIR /tests
-CMD ["sleep", "infinity"]
+USER 10001:10001
+CMD ["setpriv", "--no-new-privs", "sleep", "infinity"]

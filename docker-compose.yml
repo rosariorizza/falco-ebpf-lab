@@ -22,17 +22,26 @@ services:
       - json_output=false
       - -o
       - buffered_outputs=false
+      - -o
+      - rule_matching=all
 
   tester:
     build:
       context: .
       dockerfile: tester/Dockerfile
     container_name: falco-ebpf-tester
-    privileged: true
+    user: "10001:10001"
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - seccomp=./tester/seccomp-profile.json
+    read_only: true
     depends_on:
       - falco
     tmpfs:
-      - /sys/fs/bpf:rw,nosuid,nodev,noexec,size=1m
+      - /tmp:rw,nosuid,nodev,noexec,size=16m,mode=1777
+      - /run/cilium/bpffs:rw,nosuid,nodev,noexec,size=1m,mode=0700,uid=10001,gid=10001
     volumes:
       - ./tests:/tests:ro
-    command: ["sleep", "infinity"]
+    command: ["setpriv", "--no-new-privs", "sleep", "infinity"]
